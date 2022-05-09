@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const { v4: uuidv4, validate } = require('uuid');
+const { default: regex } = require('uuid/dist/regex');
 
 const app = express();
 app.use(express.json());
@@ -10,19 +11,76 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find((user) => user.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'User does not exists' });
+  };
+
+  request.user = user;
+  return next();
+
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  const pro = user.pro;
+
+  const todoLimit = user.todos.length;
+
+  if (pro === false && todoLimit >= 10) {
+    return response.status(403).json({ error: "User has reached the limit of ToDos" })
+  };
+
+  return next()
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const { id } = request.params;
+
+  const user = users.find((user) => user.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'User does not exists' });
+  };
+
+  const todo = user.todos.find((todo) => todo.id === id);
+
+  const regexExp = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/gi;
+
+  if (regexExp.test(id) != true ) {
+    return response.status(400).json({ error: "Id format invalid!" })
+  };
+
+  if (!todo) {
+    return response.status(404).json({ error: "Id not found!" })
+  };
+
+  request.user = user;
+
+  request.todo = todo;
+
+  return next()
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  const user = users.find((user) => user.id === id);
+
+  if (!user) {
+    return response.status(404).json({ error: "User not found!" })
+  };
+
+  request.user = user;
+
+  return next()
+
 }
 
 app.post('/users', (request, response) => {
